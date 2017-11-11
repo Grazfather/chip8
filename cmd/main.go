@@ -27,24 +27,25 @@ func main() {
 	quit := make(chan termbox.Event)
 	k := chip8.NewTermKeypad(quit)
 
-	chip8 := chip8.NewChip8(d, k)
-	chip8.Reset()
+	c := chip8.NewChip8(d, k)
+	c.Reset()
 
-	if err := chip8.LoadBinary(os.Args[1]); err != nil {
+	if err := c.LoadBinary(os.Args[1]); err != nil {
 		fmt.Printf("Error loading %s: %v\n", os.Args[1], err)
 		os.Exit(1)
 	}
 
-	go chip8.KeepTime()
+	go c.KeepTime()
 
 	tick := time.Tick(2 * time.Millisecond)
 	exit := make(chan os.Signal)
 	signal.Notify(exit, os.Interrupt)
+
 LOOP:
 	for {
 		select {
 		case <-tick:
-			err := chip8.RunOne()
+			err := c.RunOne()
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				break LOOP
