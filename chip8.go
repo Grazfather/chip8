@@ -164,7 +164,14 @@ func (c *Chip8) RunOne() error {
 	case 0xD:
 		c.OpcodeDXYN(ins)
 	case 0xE:
-		c.OpcodeEX9E(ins)
+		switch ins & 0xFF {
+		case 0x9E:
+			c.OpcodeEX9E(ins)
+		case 0xA1:
+			c.OpcodeEXA1(ins)
+		default:
+			return IllegalInstruction(ins)
+		}
 	case 0xF:
 		switch ins & 0xFF {
 		case 0x07:
