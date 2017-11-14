@@ -29,12 +29,24 @@ var stopch chan os.Signal
 var stop bool
 var tick = time.Tick(2 * time.Millisecond)
 
+func parseAddr(s string) (uint16, error) {
+	addr, err := strconv.ParseUint(s, 0, 16)
+	if err != nil {
+		return 0, fmt.Errorf("couldn't parse address from %s", s)
+	}
+	if int(addr) >= 0x1000 {
+		return 0, fmt.Errorf("addr out of range")
+	}
+	return uint16(addr), nil
+}
+
 type Debugger struct {
-	c *Chip8
+	c   *Chip8
+	bps map[uint16]bool
 }
 
 func NewDebugger(c *Chip8) *Debugger {
-	return &Debugger{c: c}
+	return &Debugger{c: c, bps: make(map[uint16]bool)}
 }
 
 func (d *Debugger) Start() {
@@ -83,27 +95,33 @@ func (d *Debugger) PrintState() {
 	fmt.Printf("Delay: "+white("0x%02X")+" Sound: "+white("0x%02X\n"), d.c.delay, d.c.sound)
 	for i := 0; i < 4; i++ {
 		for j := 0; j < 4; j++ {
-			fmt.Printf("V%02d: "+white("%02X")+", ", i*4+j, d.c.v[i*4+j])
+			fmt.Printf("V%X: "+white("%02X")+", ", i*4+j, d.c.v[i*4+j])
 		}
 		fmt.Printf("\n")
 	}
 	fmt.Println(green("-- ") + yellow("Assembly") + green(" --"))
 	dis := &Disassembler{}
 	for i := uint16(4); i > 0; i -= 2 {
-		fmt.Printf("0x%04X %04X %s\n",
-			d.c.pc-i,
-			binary.BigEndian.Uint16(d.c.mem[d.c.pc-i:]),
-			dis.dis(d.c.mem[d.c.pc-i:]))
+		addr := d.c.pc - i
+		if addr < d.c.pc {
+			fmt.Printf("0x%04X %04X %s\n",
+				addr,
+				binary.BigEndian.Uint16(d.c.mem[addr:]),
+				dis.dis(d.c.mem[addr:]))
+		}
 	}
 	fmt.Printf(white("0x%04X")+green(" %04X ")+blue("%s\n"),
 		d.c.pc,
 		binary.BigEndian.Uint16(d.c.mem[d.c.pc:]),
 		dis.dis(d.c.mem[d.c.pc:]))
 	for i := uint16(2); i < 16; i += 2 {
-		fmt.Printf("0x%04X"+green(" %04X ")+cyan("%s\n"),
-			d.c.pc+i,
-			binary.BigEndian.Uint16(d.c.mem[d.c.pc+i:]),
-			dis.dis(d.c.mem[d.c.pc+i:]))
+		addr := d.c.pc + i
+		if int((addr + 1)) < len(d.c.mem) {
+			fmt.Printf("0x%04X"+green(" %04X ")+cyan("%s\n"),
+				addr,
+				binary.BigEndian.Uint16(d.c.mem[addr:]),
+				dis.dis(d.c.mem[addr:]))
+		}
 	}
 
 }
@@ -113,16 +131,51 @@ var commands = map[string]func(*Debugger, []string){
 		fmt.Println("Reseting CPU")
 		d.c.Reset()
 	},
+	"ib": func(d *Debugger, ops []string) {
+		fmt.Println(white("Breakpoints"))
+		// TODO: Sort in any way?
+		for a, _ := range d.bps {
+			fmt.Printf("0x%04X\n", a)
+		}
+	},
+	"b": func(d *Debugger, ops []string) {
+		if len(ops) != 1 {
+			fmt.Println("Usage: b <addr>")
+		}
+		addr, err := parseAddr(ops[0])
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		d.bps[addr] = true
+	},
+	"rb": func(d *Debugger, ops []string) {
+		if len(ops) != 1 {
+			fmt.Println("Usage: rb <addr>")
+		}
+		addr, err := parseAddr(ops[0])
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		delete(d.bps, addr)
+	},
 	"r": func(d *Debugger, ops []string) {
 		fmt.Println("Running")
 		for stop == false {
 			select {
 			case <-tick:
+				if _, ok := d.bps[d.c.pc]; ok {
+					fmt.Printf(red("Hit breakpoint 0x%04X\n"), d.c.pc)
+					stop = true
+					continue
+				}
 				err := d.c.RunOne()
 				if err != nil {
 					fmt.Fprintln(os.Stderr, err)
 					stop = true
 				}
+
 			case <-stopch:
 				fmt.Println("Got Ctrl-C")
 				stop = true
@@ -140,12 +193,10 @@ var commands = map[string]func(*Debugger, []string){
 		if len(ops) != 1 {
 			fmt.Println("usage: x ADDR")
 		}
-		addr, err := strconv.ParseUint(ops[0], 0, 16)
+		addr, err := parseAddr(ops[0])
 		if err != nil {
-			fmt.Println("Couldn't parse address from", ops[0])
-		}
-		if int(addr) >= len(d.c.mem) {
-			fmt.Println("Addr out of range")
+			fmt.Println(err)
+			return
 		}
 		fmt.Printf("%#04x: %02x\n", addr, d.c.mem[addr])
 	},
