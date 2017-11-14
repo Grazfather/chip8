@@ -2,15 +2,27 @@ package chip8
 
 import (
 	"bufio"
+	"encoding/binary"
 	"fmt"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/fatih/color"
 )
 
-const PROMPT = "\033[31m>>> \033[0m"
+var yellow = color.New(color.FgYellow).SprintFunc()
+var red = color.New(color.FgRed).SprintFunc()
+var blue = color.New(color.FgBlue).SprintFunc()
+var green = color.New(color.FgGreen).SprintFunc()
+var cyan = color.New(color.FgCyan).SprintFunc()
+var white = color.New(color.FgWhite, color.Bold).SprintFunc()
+
+var PROMPT = red(">>> ")
+
+//const PROMPT = "\033[31m>>> \033[0m"
 
 // TODO: Make part of debugger
 var stopch chan os.Signal
@@ -18,8 +30,7 @@ var stop bool
 var tick = time.Tick(2 * time.Millisecond)
 
 type Debugger struct {
-	c       *Chip8
-	verbose bool
+	c *Chip8
 }
 
 func NewDebugger(c *Chip8) *Debugger {
@@ -34,25 +45,67 @@ func (d *Debugger) Start() {
 	go func() {
 		for {
 			s := <-stopch
-			fmt.Println("Got signal", s)
-			stop = true
+			if !stop {
+				fmt.Println("Got ", s)
+				stop = true
+			}
 		}
 	}()
 
+	var last string
 	for {
+		d.PrintState()
 		fmt.Printf(PROMPT)
 		line, err := reader.ReadString('\n')
-		line = strings.TrimSpace(line)
 		if err != nil {
 			fmt.Println(err)
 			panic(err)
 		}
+		line = strings.TrimSpace(line)
+
+		// A blank line means repeat the last
+		if line == "" {
+			line = last
+		}
+		last = line
 		err = d.Handle(line)
 		if err != nil {
 			fmt.Println(err)
 		}
-		stop = false
 	}
+}
+
+func (d *Debugger) PrintAsm(addr, count int) {
+}
+func (d *Debugger) PrintState() {
+	fmt.Println(green("-- ") + yellow("Registers") + green(" --"))
+	fmt.Printf("PC: "+white("0x%04X")+" I: "+white("0x%04X\n"), d.c.pc, d.c.i)
+	fmt.Printf("Delay: "+white("0x%02X")+" Sound: "+white("0x%02X\n"), d.c.delay, d.c.sound)
+	for i := 0; i < 4; i++ {
+		for j := 0; j < 4; j++ {
+			fmt.Printf("V%02d: "+white("%02X")+", ", i*4+j, d.c.v[i*4+j])
+		}
+		fmt.Printf("\n")
+	}
+	fmt.Println(green("-- ") + yellow("Assembly") + green(" --"))
+	dis := &Disassembler{}
+	for i := uint16(4); i > 0; i -= 2 {
+		fmt.Printf("0x%04X %04X %s\n",
+			d.c.pc-i,
+			binary.BigEndian.Uint16(d.c.mem[d.c.pc-i:]),
+			dis.dis(d.c.mem[d.c.pc-i:]))
+	}
+	fmt.Printf(white("0x%04X")+green(" %04X ")+blue("%s\n"),
+		d.c.pc,
+		binary.BigEndian.Uint16(d.c.mem[d.c.pc:]),
+		dis.dis(d.c.mem[d.c.pc:]))
+	for i := uint16(2); i < 16; i += 2 {
+		fmt.Printf("0x%04X"+green(" %04X ")+cyan("%s\n"),
+			d.c.pc+i,
+			binary.BigEndian.Uint16(d.c.mem[d.c.pc+i:]),
+			dis.dis(d.c.mem[d.c.pc+i:]))
+	}
+
 }
 
 var commands = map[string]func(*Debugger, []string){
@@ -70,15 +123,18 @@ var commands = map[string]func(*Debugger, []string){
 					fmt.Fprintln(os.Stderr, err)
 					stop = true
 				}
-				if d.verbose {
-					fmt.Printf("%v\n", d.c)
-				}
 			case <-stopch:
 				fmt.Println("Got Ctrl-C")
 				stop = true
 			}
 		}
-		fmt.Printf("%v\n", d.c)
+	},
+	"s": func(d *Debugger, ops []string) {
+		err := d.c.RunOne()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			stop = true
+		}
 	},
 	"x": func(d *Debugger, ops []string) {
 		if len(ops) != 1 {
