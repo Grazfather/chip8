@@ -162,14 +162,17 @@ var commands = map[string]func(*Debugger, []string){
 	},
 	"r": func(d *Debugger, ops []string) {
 		fmt.Println("Running")
+		stop = false
+		first := true
 		for stop == false {
 			select {
 			case <-tick:
-				if _, ok := d.bps[d.c.pc]; ok {
+				if v, ok := d.bps[d.c.pc]; ok && v && !first {
 					fmt.Printf(red("Hit breakpoint 0x%04X\n"), d.c.pc)
 					stop = true
 					continue
 				}
+				first = false
 				err := d.c.RunOne()
 				if err != nil {
 					fmt.Fprintln(os.Stderr, err)
