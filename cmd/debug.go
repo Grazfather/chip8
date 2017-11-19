@@ -24,7 +24,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// TODO: Make debugging its own command!
 	go c.KeepTime()
 
 	debugger := chip8.NewDebugger(c)

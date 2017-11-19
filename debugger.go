@@ -22,8 +22,6 @@ var white = color.New(color.FgWhite, color.Bold).SprintFunc()
 
 var PROMPT = red(">>> ")
 
-//const PROMPT = "\033[31m>>> \033[0m"
-
 // TODO: Make part of debugger
 var stopch chan os.Signal
 var stop bool
@@ -134,8 +132,13 @@ var commands = map[string]func(*Debugger, []string){
 	"ib": func(d *Debugger, ops []string) {
 		fmt.Println(white("Breakpoints"))
 		// TODO: Sort in any way?
-		for a, _ := range d.bps {
-			fmt.Printf("0x%04X\n", a)
+		// TODO: Count and display # times hit
+		for a, v := range d.bps {
+			if v {
+				fmt.Printf(white("0x%04X\n"), a)
+			} else {
+				fmt.Printf("0x%04X (disabled)\n", a)
+			}
 		}
 	},
 	"b": func(d *Debugger, ops []string) {
@@ -148,6 +151,17 @@ var commands = map[string]func(*Debugger, []string){
 			return
 		}
 		d.bps[addr] = true
+	},
+	"db": func(d *Debugger, ops []string) {
+		if len(ops) != 1 {
+			fmt.Println("Usage: db <addr>")
+		}
+		addr, err := parseAddr(ops[0])
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		d.bps[addr] = false
 	},
 	"rb": func(d *Debugger, ops []string) {
 		if len(ops) != 1 {
