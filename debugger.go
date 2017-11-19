@@ -217,6 +217,23 @@ var commands = map[string]func(*Debugger, []string){
 		}
 		fmt.Printf("%#04x: %02x\n", addr, d.c.mem[addr])
 	},
+	// TODO: Support eb, ew, es, etc?
+	"e": func(d *Debugger, ops []string) {
+		if len(ops) != 2 {
+			fmt.Println("usage: e ADDR value")
+		}
+		addr, err := parseAddr(ops[0])
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		v, err := strconv.ParseUint(ops[1], 0, 8)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		d.c.mem[addr] = byte(v)
+	},
 	"q": func(d *Debugger, ops []string) {
 		fmt.Println("goodbye.")
 		os.Exit(0)
