@@ -63,8 +63,12 @@ func (d *Debugger) Start() {
 	}()
 
 	var last string
+	stop = true
 	for {
-		d.PrintState()
+		if stop {
+			d.PrintState()
+			stop = false
+		}
 		fmt.Printf(PROMPT)
 		line, err := reader.ReadString('\n')
 		if err != nil {
@@ -128,6 +132,10 @@ var commands = map[string]func(*Debugger, []string){
 	"reset": func(d *Debugger, ops []string) {
 		fmt.Println("Reseting CPU")
 		d.c.Reset()
+	},
+	"ctx": func(d *Debugger, ops []string) {
+		// Setting stop makes the debugger show the context
+		stop = true
 	},
 	"ib": func(d *Debugger, ops []string) {
 		fmt.Println(white("Breakpoints"))
@@ -206,8 +214,8 @@ var commands = map[string]func(*Debugger, []string){
 		err := d.c.RunOne()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
-			stop = true
 		}
+		stop = true
 	},
 	"x": func(d *Debugger, ops []string) {
 		if len(ops) != 1 {
