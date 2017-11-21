@@ -68,6 +68,8 @@ func (d *Disassembler) dis(mem []byte) instruction {
 			return instruction{"Set %s = %[2]s = %[1]s>>1", []string{SArgX(ins), SArgY(ins)}, ins}
 		case 0x7:
 			return instruction{"Set %s = %[2]s - %[1]s", []string{SArgX(ins), SArgY(ins)}, ins}
+		case 0xE:
+			return instruction{"Set %s = %[2]s = %[1]s<<1", []string{SArgX(ins), SArgY(ins)}, ins}
 		default:
 			return instruction{"ILLEGAL", nil, ins}
 		}

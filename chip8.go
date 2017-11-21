@@ -147,6 +147,8 @@ func (c *Chip8) RunOne() error {
 			c.Opcode8XY6(ins)
 		case 0x7:
 			c.Opcode8XY7(ins)
+		case 0xE:
+			c.Opcode8XYE(ins)
 		default:
 			return IllegalInstruction(ins)
 		}
