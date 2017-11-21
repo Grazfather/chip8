@@ -144,6 +144,7 @@ var commands = map[string]func(*Debugger, []string){
 	"b": func(d *Debugger, ops []string) {
 		if len(ops) != 1 {
 			fmt.Println("Usage: b <addr>")
+			return
 		}
 		addr, err := parseAddr(ops[0])
 		if err != nil {
@@ -155,6 +156,7 @@ var commands = map[string]func(*Debugger, []string){
 	"db": func(d *Debugger, ops []string) {
 		if len(ops) != 1 {
 			fmt.Println("Usage: db <addr>")
+			return
 		}
 		addr, err := parseAddr(ops[0])
 		if err != nil {
@@ -166,6 +168,7 @@ var commands = map[string]func(*Debugger, []string){
 	"rb": func(d *Debugger, ops []string) {
 		if len(ops) != 1 {
 			fmt.Println("Usage: rb <addr>")
+			return
 		}
 		addr, err := parseAddr(ops[0])
 		if err != nil {
@@ -221,6 +224,7 @@ var commands = map[string]func(*Debugger, []string){
 	"e": func(d *Debugger, ops []string) {
 		if len(ops) != 2 {
 			fmt.Println("usage: e ADDR value")
+			return
 		}
 		addr, err := parseAddr(ops[0])
 		if err != nil {
