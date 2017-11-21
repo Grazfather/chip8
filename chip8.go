@@ -36,6 +36,8 @@ func IllegalInstruction(ins uint16) error {
 	return fmt.Errorf(ErrIllegal, ins)
 }
 
+const MAX_MEM_ADDRESS = 0x1000
+
 type Chip8 struct {
 	mem    [0x1000]byte
 	v      [16]byte

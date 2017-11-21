@@ -116,14 +116,12 @@ func (d *Debugger) PrintState() {
 		d.c.pc,
 		binary.BigEndian.Uint16(d.c.mem[d.c.pc:]),
 		dis.dis(d.c.mem[d.c.pc:]))
-	for i := uint16(2); i < 16; i += 2 {
+	for i := uint16(2); i < 16 && int(d.c.pc+i) < len(d.c.mem); i += 2 {
 		addr := d.c.pc + i
-		if int((addr + 1)) < len(d.c.mem) {
-			fmt.Printf("0x%04X"+green(" %04X ")+cyan("%s\n"),
-				addr,
-				binary.BigEndian.Uint16(d.c.mem[addr:]),
-				dis.dis(d.c.mem[addr:]))
-		}
+		fmt.Printf("0x%04X"+green(" %04X ")+cyan("%s\n"),
+			addr,
+			binary.BigEndian.Uint16(d.c.mem[addr:]),
+			dis.dis(d.c.mem[addr:]))
 	}
 
 }
@@ -218,15 +216,38 @@ var commands = map[string]func(*Debugger, []string){
 		stop = true
 	},
 	"x": func(d *Debugger, ops []string) {
-		if len(ops) != 1 {
-			fmt.Println("usage: x ADDR")
+		var count uint16
+		if len(ops) == 0 {
+			fmt.Println("usage: x [COUNT] ADDR")
+			return
+		}
+		if len(ops) == 1 {
+			count = 1
+		} else {
+			var err error
+			count, err = parseAddr(ops[0])
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			ops = ops[1:]
 		}
 		addr, err := parseAddr(ops[0])
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		fmt.Printf("%#04x: %02x\n", addr, d.c.mem[addr])
+		var i uint16
+		if addr+count > MAX_MEM_ADDRESS {
+			count = MAX_MEM_ADDRESS - addr
+		}
+		for ; count > 16; count -= 16 {
+			fmt.Printf(white("%#04x: ")+"% x\n", addr+i, d.c.mem[addr+i:addr+i+16])
+			i += 16
+		}
+		if count != 0 {
+			fmt.Printf(white("%#04x: ")+"% x\n", addr+i, d.c.mem[addr+i:addr+i+count])
+		}
 	},
 	// TODO: Support eb, ew, es, etc?
 	"e": func(d *Debugger, ops []string) {
