@@ -53,7 +53,7 @@ func (k *TermKeypad) receiveEvents(event chan<- termbox.Event) {
 		if e.Type == termbox.EventInterrupt {
 			event <- e
 		} else if e.Type != termbox.EventKey {
-			return
+			continue
 		}
 		if v, ok := k.keyMap[e.Ch]; ok == true {
 			// HACK: reset the timer for that key. On expiration mark as up.
