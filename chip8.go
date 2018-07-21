@@ -32,8 +32,8 @@ const (
 	ErrIllegal = "Illegal Instruction! %04X"
 )
 
-func IllegalInstruction(ins uint16) error {
-	return fmt.Errorf(ErrIllegal, ins)
+func IllegalInstruction(opcode uint16) error {
+	return fmt.Errorf(ErrIllegal, opcode)
 }
 
 const MAX_MEM_ADDRESS = 0x1000

@@ -163,8 +163,7 @@ func removeBreakpoint(breaks map[uint16]bool, addr uint16) {
 	delete(breaks, addr)
 }
 
-func run(d *Debugger, ops []string) {
-	fmt.Println("Running")
+func cont(d *Debugger, ops []string) {
 	stop = false
 	stopped = false
 	first := true // To allow us to run while on a bp
@@ -202,6 +201,21 @@ func step(d *Debugger, ops []string) {
 		fmt.Fprintln(os.Stderr, err)
 	}
 	stop = true
+}
+
+func next(d *Debugger, ops []string) {
+	// Next is just like step, except for if we're on a call instruction,
+	// we stop after the call finishes.
+	if ins := d.dis.dis(d.c.mem[d.c.pc : d.c.pc+2]); ins.isCall() {
+		addBreakpoint(d.tbps, d.c.pc+2)
+		cont(d, nil)
+	} else {
+		err := d.c.RunOne()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		stop = true
+	}
 }
 
 func examine(d *Debugger, ops []string) {

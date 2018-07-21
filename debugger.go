@@ -44,13 +44,15 @@ type Debugger struct {
 	c    *Chip8
 	bps  map[uint16]bool
 	tbps map[uint16]bool
+	dis  Disassembler
 }
 
 func NewDebugger(c *Chip8) *Debugger {
 	return &Debugger{
 		c:    c,
 		bps:  make(map[uint16]bool),
-		tbps: make(map[uint16]bool)}
+		tbps: make(map[uint16]bool),
+		dis:  Disassembler{}}
 }
 
 func (d *Debugger) Start() {
@@ -117,26 +119,25 @@ func (d *Debugger) PrintState() {
 		fmt.Printf("\n")
 	}
 	fmt.Println(green("-- ") + yellow("Assembly") + green(" --"))
-	dis := &Disassembler{}
 	for i := uint16(4); i > 0; i -= 2 {
 		addr := d.c.pc - i
 		if addr < d.c.pc {
 			fmt.Printf("0x%04X %04X %s\n",
 				addr,
 				binary.BigEndian.Uint16(d.c.mem[addr:]),
-				dis.dis(d.c.mem[addr:]))
+				d.dis.dis(d.c.mem[addr:]))
 		}
 	}
 	fmt.Printf(white("0x%04X")+green(" %04X ")+blue("%s\n"),
 		d.c.pc,
 		binary.BigEndian.Uint16(d.c.mem[d.c.pc:]),
-		dis.dis(d.c.mem[d.c.pc:]))
+		d.dis.dis(d.c.mem[d.c.pc:]))
 	for i := uint16(2); i < 16 && int(d.c.pc+i) < len(d.c.mem); i += 2 {
 		addr := d.c.pc + i
 		fmt.Printf("0x%04X"+green(" %04X ")+cyan("%s\n"),
 			addr,
 			binary.BigEndian.Uint16(d.c.mem[addr:]),
-			dis.dis(d.c.mem[addr:]))
+			d.dis.dis(d.c.mem[addr:]))
 	}
 
 }
@@ -153,9 +154,11 @@ var commands = map[string]func(*Debugger, []string){
 	"etb":   enableTBreak,
 	"rb":    removeBreak,
 	"rtb":   removeTBreak,
-	"r":     run,
+	"c":     cont,
 	"s":     step,
 	"si":    step,
+	"n":     next,
+	"ni":    next,
 	"x":     examine,
 	"e":     edit,
 	"q":     quit,

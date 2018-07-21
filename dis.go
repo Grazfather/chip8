@@ -21,6 +21,10 @@ func (i instruction) String() string {
 	return fmt.Sprintf(i.name, s...)
 }
 
+func (i instruction) isCall() bool {
+	return (i.op & 0xF000) == 0x2000
+}
+
 type Disassembler struct{}
 
 func (d *Disassembler) dis(mem []byte) instruction {
