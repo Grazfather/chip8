@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"strconv"
@@ -25,6 +26,7 @@ var PROMPT = red(">>> ")
 // TODO: Make part of debugger
 var stopch chan os.Signal
 var stop bool
+var stopped bool
 var tick = time.Tick(2 * time.Millisecond)
 
 func parseAddr(s string) (uint16, error) {
@@ -55,6 +57,11 @@ func (d *Debugger) Start() {
 	go func() {
 		for {
 			s := <-stopch
+			if stopped {
+				fmt.Printf("\nAlready stopped. Press Ctrl-D to or q to quit\n")
+				fmt.Printf(PROMPT)
+				continue
+			}
 			if !stop {
 				fmt.Println("Got ", s)
 				stop = true
@@ -68,12 +75,16 @@ func (d *Debugger) Start() {
 		if stop {
 			d.PrintState()
 			stop = false
+			stopped = true
 		}
 		fmt.Printf(PROMPT)
 		line, err := reader.ReadString('\n')
 		if err != nil {
+			if err == io.EOF {
+				fmt.Printf("\n")
+				return
+			}
 			fmt.Println(err)
-			panic(err)
 		}
 		line = strings.TrimSpace(line)
 
@@ -136,6 +147,10 @@ var commands = map[string]func(*Debugger, []string){
 		stop = true
 	},
 	"ib": func(d *Debugger, ops []string) {
+		if len(d.bps) == 0 {
+			fmt.Println(white("No breakpoints"))
+			return
+		}
 		fmt.Println(white("Breakpoints"))
 		// TODO: Sort in any way?
 		// TODO: Count and display # times hit
@@ -186,6 +201,7 @@ var commands = map[string]func(*Debugger, []string){
 	"r": func(d *Debugger, ops []string) {
 		fmt.Println("Running")
 		stop = false
+		stopped = false
 		first := true
 		for stop == false {
 			select {

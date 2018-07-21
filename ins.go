@@ -6,7 +6,7 @@ import (
 
 // Opcode0NNN is an ignored opcode.
 func (c *Chip8) Opcode0NNN(ins uint16) {
-	panic("unimplemented")
+	panic("'CALL RCA1802' unimplemented")
 }
 
 // Opcode00E0 clears the screen.
