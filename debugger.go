@@ -41,12 +41,16 @@ func parseAddr(s string) (uint16, error) {
 }
 
 type Debugger struct {
-	c   *Chip8
-	bps map[uint16]bool
+	c    *Chip8
+	bps  map[uint16]bool
+	tbps map[uint16]bool
 }
 
 func NewDebugger(c *Chip8) *Debugger {
-	return &Debugger{c: c, bps: make(map[uint16]bool)}
+	return &Debugger{
+		c:    c,
+		bps:  make(map[uint16]bool),
+		tbps: make(map[uint16]bool)}
 }
 
 func (d *Debugger) Start() {
@@ -142,8 +146,13 @@ var commands = map[string]func(*Debugger, []string){
 	"ctx":   context,
 	"ib":    breakpoints,
 	"b":     addBreak,
+	"tb":    addTBreak,
 	"db":    disableBreak,
+	"dtb":   disableTBreak,
+	"eb":    enableBreak,
+	"etb":   enableTBreak,
 	"rb":    removeBreak,
+	"rtb":   removeTBreak,
 	"r":     run,
 	"s":     step,
 	"si":    step,
