@@ -119,6 +119,7 @@ func (d *Debugger) PrintState() {
 		fmt.Printf("\n")
 	}
 	fmt.Println(green("-- ") + yellow("Assembly") + green(" --"))
+	// Print a few instructions back
 	for i := uint16(4); i > 0; i -= 2 {
 		addr := d.c.pc - i
 		if addr < d.c.pc {
@@ -128,11 +129,30 @@ func (d *Debugger) PrintState() {
 				d.dis.dis(d.c.mem[addr:]))
 		}
 	}
+	// Print current instruction
+	ins := d.dis.dis(d.c.mem[d.c.pc:])
 	fmt.Printf(white("0x%04X")+green(" %04X ")+blue("%s\n"),
 		d.c.pc,
 		binary.BigEndian.Uint16(d.c.mem[d.c.pc:]),
-		d.dis.dis(d.c.mem[d.c.pc:]))
-	for i := uint16(2); i < 16 && int(d.c.pc+i) < len(d.c.mem); i += 2 {
+		ins)
+	// If we're on a call, peek at its dest
+	i := uint16(2)
+	if ins.isCall() {
+		addr := ins.callTarget()
+		fmt.Printf("⤷  0x%04X"+green(" %04X ")+cyan("%s\n"),
+			addr+i,
+			binary.BigEndian.Uint16(d.c.mem[addr+i:]),
+			d.dis.dis(d.c.mem[addr+i:]))
+		i += 2
+		for ; i < 8 && int(addr+i) < len(d.c.mem); i += 2 {
+			fmt.Printf("   0x%04X"+green(" %04X ")+cyan("%s\n"),
+				addr+i,
+				binary.BigEndian.Uint16(d.c.mem[addr+i:]),
+				d.dis.dis(d.c.mem[addr+i:]))
+		}
+	}
+	// Print a few instructions forward
+	for ; i < 16 && int(d.c.pc+i) < len(d.c.mem); i += 2 {
 		addr := d.c.pc + i
 		fmt.Printf("0x%04X"+green(" %04X ")+cyan("%s\n"),
 			addr,

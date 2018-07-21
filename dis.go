@@ -25,6 +25,10 @@ func (i instruction) isCall() bool {
 	return (i.op & 0xF000) == 0x2000
 }
 
+func (i instruction) callTarget() uint16 {
+	return ArgNNN(i.op) - 2
+}
+
 type Disassembler struct{}
 
 func (d *Disassembler) dis(mem []byte) instruction {
