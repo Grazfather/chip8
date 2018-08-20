@@ -49,9 +49,10 @@ type Chip8 struct {
 	sound  uint8
 	screen IterableImage
 	Renderer
-	keypad Keypad
-	timer  *time.Ticker
-	r      *rand.Rand
+	keypad   Keypad
+	Renderch chan bool
+	timer    *time.Ticker
+	r        *rand.Rand
 }
 
 // TODO Implement incrementing I, PC behaviour (halt on overflow, or wrap
@@ -62,9 +63,14 @@ func NewChip8(r Renderer, k Keypad) *Chip8 {
 		screen:   &myScreen{},
 		Renderer: r,
 		keypad:   k,
+		Renderch: make(chan bool, 10),
 		timer:    time.NewTicker(17 * time.Millisecond),
 		r:        rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
+}
+
+func (c *Chip8) Render() {
+	c.Renderer.Render(c.screen)
 }
 
 func (c *Chip8) String() string {

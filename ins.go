@@ -189,7 +189,7 @@ func (c *Chip8) OpcodeDXYN(ins uint16) {
 	} else {
 		c.v[VF] = 0
 	}
-	c.Render(c.screen)
+	c.Renderch <- true
 }
 
 // OpcodeEX9E skips the next instruction if key Vx is pressed.

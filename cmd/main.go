@@ -50,6 +50,8 @@ LOOP:
 				fmt.Fprintln(os.Stderr, err)
 				break LOOP
 			}
+		case <-c.Renderch:
+			c.Render()
 		case <-exit:
 			break LOOP
 		case <-quit:
