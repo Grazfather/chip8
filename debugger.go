@@ -157,15 +157,17 @@ func (d *Debugger) halt(g *gocui.Gui, v *gocui.View) error {
 		return nil
 	})
 	stop = true
+	d.ui.SetCurrentView(d.ui.promptView.Name())
+	d.ui.Cursor = true
 	return nil
 }
 
 func (d *Debugger) cont() {
 	stop = false
 	stopped = false
-	first = true
+	first = true // So we can continue through a breakpoint
 	d.ui.Cursor = false
-	d.ui.SetCurrentView("display")
+	d.ui.SetCurrentView(d.ui.displayView.Name())
 }
 
 func (d *Debugger) RunOne() {
