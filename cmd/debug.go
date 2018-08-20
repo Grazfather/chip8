@@ -13,6 +13,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	debugger := chip8.NewDebugger()
-	debugger.Start(os.Args[1])
+	debugger := chip8.NewDebugger(os.Args[1])
+	debugger.Start()
 }

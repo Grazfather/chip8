@@ -38,6 +38,7 @@ func parseAddr(s string) (uint16, error) {
 
 type Debugger struct {
 	c    *Chip8
+	rom  string
 	bps  map[uint16]bool
 	tbps map[uint16]bool
 	dis  Disassembler
@@ -52,9 +53,10 @@ type ui struct {
 	promptView  *gocui.View
 }
 
-func NewDebugger() *Debugger {
+func NewDebugger(rom string) *Debugger {
 	return &Debugger{
 		c:    nil,
+		rom:  rom,
 		bps:  make(map[uint16]bool),
 		tbps: make(map[uint16]bool),
 		dis:  Disassembler{},
@@ -224,7 +226,7 @@ func (d *Debugger) cleanPrompt() {
 	v.SetCursor(0, 0)
 }
 
-func (d *Debugger) Start(rom string) {
+func (d *Debugger) Start() {
 	g, err := gocui.NewGui(gocui.OutputNormal)
 	if err != nil {
 		log.Panicln(err)
@@ -242,7 +244,7 @@ func (d *Debugger) Start(rom string) {
 	d.c = NewChip8(r, k)
 	d.c.Reset()
 
-	if err := d.c.LoadBinary(rom); err != nil {
+	if err := d.c.LoadBinary(d.rom); err != nil {
 		fmt.Printf("Error loading %s: %v\n", os.Args[1], err)
 		os.Exit(1)
 	}
@@ -276,6 +278,7 @@ func (d *Debugger) run() {
 	var tick = time.Tick(2 * time.Millisecond)
 	d.printContext()
 
+	stop = true
 	first = true // To allow us to run while on a bp
 LOOP:
 	for {
