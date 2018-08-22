@@ -9,4 +9,4 @@ can be replaced with your own implementation.
 
 _main.go_ will run the specified rom using a termbox-based ui, while _debug.go_ will open a simple debug repl.
 
-![debug demo](static/demo.svg)
+[Click here](static/demo.svg) to see it in action.
