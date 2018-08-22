@@ -75,11 +75,12 @@ func main() {
 					fmt.Fprintln(os.Stderr, err)
 					break LOOP
 				}
-			case <-c.Renderch:
-				g.Update(func(g *gocui.Gui) error {
-					c.Render()
-					return nil
-				})
+				if c.RenderFlag {
+					g.Update(func(g *gocui.Gui) error {
+						c.Render()
+						return nil
+					})
+				}
 			}
 		}
 	}()

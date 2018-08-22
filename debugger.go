@@ -172,8 +172,11 @@ func (d *Debugger) cont() {
 	d.ui.SetCurrentView(d.ui.displayView.Name())
 }
 
-func (d *Debugger) RunOne() {
+func (d *Debugger) StepOne() {
 	err := d.c.RunOne()
+	if d.c.RenderFlag {
+		d.c.Render()
+	}
 	stopped = false
 	if err != nil {
 		d.Println(err)
@@ -306,6 +309,12 @@ LOOP:
 			first = false
 			if !stop {
 				err = d.c.RunOne()
+				if d.c.RenderFlag {
+					d.ui.Update(func(g *gocui.Gui) error {
+						d.c.Render()
+						return nil
+					})
+				}
 			}
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
@@ -316,11 +325,6 @@ LOOP:
 				d.printContext()
 				d.cleanPrompt()
 			}
-		case <-d.c.Renderch:
-			d.ui.Update(func(g *gocui.Gui) error {
-				d.c.Render()
-				return nil
-			})
 		}
 	}
 }

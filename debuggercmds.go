@@ -180,7 +180,7 @@ func cont(d *Debugger, ops []string) {
 }
 
 func step(d *Debugger, ops []string) {
-	d.RunOne()
+	d.StepOne()
 }
 
 func next(d *Debugger, ops []string) {
@@ -190,7 +190,7 @@ func next(d *Debugger, ops []string) {
 		addBreakpoint(d.tbps, d.c.pc+2)
 		cont(d, nil)
 	} else {
-		d.RunOne()
+		d.StepOne()
 	}
 }
 

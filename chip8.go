@@ -49,10 +49,10 @@ type Chip8 struct {
 	sound  uint8
 	screen IterableImage
 	Renderer
-	keypad   Keypad
-	Renderch chan bool
-	timer    *time.Ticker
-	r        *rand.Rand
+	keypad     Keypad
+	RenderFlag bool
+	timer      *time.Ticker
+	r          *rand.Rand
 }
 
 // TODO Implement incrementing I, PC behaviour (halt on overflow, or wrap
@@ -63,7 +63,6 @@ func NewChip8(r Renderer, k Keypad) *Chip8 {
 		screen:   &myScreen{},
 		Renderer: r,
 		keypad:   k,
-		Renderch: make(chan bool, 10),
 		timer:    time.NewTicker(17 * time.Millisecond),
 		r:        rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
@@ -111,7 +110,7 @@ func (c *Chip8) Reset() {
 
 func (c *Chip8) RunOne() error {
 
-	// TODO: Rate limit with a timer (select on it and a stop chan)
+	c.RenderFlag = false
 	ins := binary.BigEndian.Uint16(c.mem[c.pc:])
 	switch (ins & 0xF000) >> 12 {
 	case 0x0:

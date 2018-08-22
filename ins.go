@@ -12,6 +12,7 @@ func (c *Chip8) Opcode0NNN(ins uint16) {
 // Opcode00E0 clears the screen.
 func (c *Chip8) Opcode00E0(ins uint16) {
 	c.screen.OnEachPixel(ClearPixel)
+	c.RenderFlag = true
 }
 
 // Opcode00EE returns from a subroutine.
@@ -189,7 +190,7 @@ func (c *Chip8) OpcodeDXYN(ins uint16) {
 	} else {
 		c.v[VF] = 0
 	}
-	c.Renderch <- true
+	c.RenderFlag = true
 }
 
 // OpcodeEX9E skips the next instruction if key Vx is pressed.
