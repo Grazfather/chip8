@@ -32,11 +32,16 @@ func parseAddr(s string) (uint16, error) {
 	return uint16(addr), nil
 }
 
+type Breakpoint struct {
+	enabled  bool
+	timesHit int
+}
+
 type Debugger struct {
 	c       *Chip8
 	rom     string
-	bps     map[uint16]bool
-	tbps    map[uint16]bool
+	bps     map[uint16]Breakpoint
+	tbps    map[uint16]Breakpoint
 	dis     Disassembler
 	ui      *ui
 	last    string
@@ -56,8 +61,8 @@ func NewDebugger(rom string) *Debugger {
 	return &Debugger{
 		c:    nil,
 		rom:  rom,
-		bps:  make(map[uint16]bool),
-		tbps: make(map[uint16]bool),
+		bps:  make(map[uint16]Breakpoint),
+		tbps: make(map[uint16]Breakpoint),
 		dis:  Disassembler{},
 	}
 }
@@ -219,7 +224,6 @@ func (d *Debugger) cleanPrompt() {
 	v := d.ui.promptView
 	d.ui.SetCurrentView("prompt")
 	v.Clear()
-	// TODO: Get the y coord
 	d.ui.Cursor = true
 	v.SetCursor(0, 0)
 }
@@ -286,16 +290,18 @@ LOOP:
 			if d.stopped {
 				continue
 			}
-			if v, ok := d.bps[d.c.pc]; ok && v && !d.first {
+			if v, ok := d.bps[d.c.pc]; ok && v.enabled && !d.first {
 				d.ui.Update(func(g *gocui.Gui) error {
 					d.Printf(red("Hit breakpoint at 0x%04X\n"), d.c.pc)
+					d.bps[d.c.pc] = Breakpoint{true, v.timesHit + 1}
 					return nil
 				})
 				d.stop = true
 			}
-			if v, ok := d.tbps[d.c.pc]; ok && v && !d.first {
+			if v, ok := d.tbps[d.c.pc]; ok && v.enabled && !d.first {
 				d.ui.Update(func(g *gocui.Gui) error {
 					d.Printf(red("Hit temp breakpoint at 0x%04X\n"), d.c.pc)
+					d.tbps[d.c.pc] = Breakpoint{true, v.timesHit + 1}
 					return nil
 				})
 				removeBreakpoint(d.tbps, d.c.pc)

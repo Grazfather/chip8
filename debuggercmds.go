@@ -20,14 +20,13 @@ func context(d *Debugger, ops []string) {
 	d.stopped = false // Redraws context
 }
 
-func (d *Debugger) printBreakpoints(breaks map[uint16]bool) {
+func (d *Debugger) printBreakpoints(breaks map[uint16]Breakpoint) {
 	// TODO: Sort in any way?
-	// TODO: Count and display # times hit
 	for a, v := range breaks {
-		if v {
-			d.Printf(green("+ 0x%04X\n"), a)
+		if v.enabled {
+			d.Printf(green("+ 0x%04X ")+"(hit %d times)\n", a, v.timesHit)
 		} else {
-			d.Printf("- 0x%04X\n", a)
+			d.Printf("- 0x%04X (hit %d times)\n", a, v.timesHit)
 		}
 	}
 }
@@ -75,8 +74,8 @@ func addTBreak(d *Debugger, ops []string) {
 	d.Printf("Added bp at 0x%04X\n", addr)
 }
 
-func addBreakpoint(breaks map[uint16]bool, addr uint16) {
-	breaks[addr] = true
+func addBreakpoint(breaks map[uint16]Breakpoint, addr uint16) {
+	breaks[addr] = Breakpoint{true, 0}
 }
 
 func disableBreak(d *Debugger, ops []string) {
@@ -107,8 +106,8 @@ func disableTBreak(d *Debugger, ops []string) {
 	d.Printf("Disabled bp at 0x%04X\n", addr)
 }
 
-func disableBreakpoint(breaks map[uint16]bool, addr uint16) {
-	breaks[addr] = false
+func disableBreakpoint(breaks map[uint16]Breakpoint, addr uint16) {
+	breaks[addr] = Breakpoint{false, breaks[addr].timesHit}
 }
 
 func enableBreak(d *Debugger, ops []string) {
@@ -139,8 +138,8 @@ func enableTBreak(d *Debugger, ops []string) {
 	d.Printf("Enabled bp at 0x%04X\n", addr)
 }
 
-func enableBreakpoint(breaks map[uint16]bool, addr uint16) {
-	breaks[addr] = true
+func enableBreakpoint(breaks map[uint16]Breakpoint, addr uint16) {
+	breaks[addr] = Breakpoint{true, breaks[addr].timesHit}
 }
 
 func removeBreak(d *Debugger, ops []string) {
@@ -171,7 +170,7 @@ func removeTBreak(d *Debugger, ops []string) {
 	d.Printf("Removed bp at 0x%04X\n", addr)
 }
 
-func removeBreakpoint(breaks map[uint16]bool, addr uint16) {
+func removeBreakpoint(breaks map[uint16]Breakpoint, addr uint16) {
 	delete(breaks, addr)
 }
 
