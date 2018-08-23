@@ -142,6 +142,22 @@ func (ui *ui) layout(g *gocui.Gui) error {
 	return nil
 }
 
+func (ui *ui) swapFocus(g *gocui.Gui, v *gocui.View) error {
+	currentView := g.CurrentView()
+	if currentView == nil || currentView.Name() == "display" {
+		if _, err := g.SetCurrentView("prompt"); err != nil {
+			return err
+		}
+		return nil
+	} else {
+		if _, err := g.SetCurrentView("display"); err != nil {
+			return err
+		}
+		g.Cursor = false
+	}
+	return nil
+}
+
 func (d *Debugger) quit(g *gocui.Gui, v *gocui.View) error {
 	return gocui.ErrQuit
 }
@@ -182,26 +198,6 @@ func (d *Debugger) StepOne() {
 		d.Println(err)
 	}
 	stop = true
-}
-func (ui *ui) swapFocus(g *gocui.Gui, v *gocui.View) error {
-	currentView := g.CurrentView()
-	if currentView == nil {
-		if _, err := g.SetCurrentView("prompt"); err != nil {
-			return err
-		}
-		return nil
-	}
-	if currentView.Name() == "prompt" {
-		if _, err := g.SetCurrentView("display"); err != nil {
-			return err
-		}
-		g.Cursor = false
-	} else {
-		if _, err := g.SetCurrentView("prompt"); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (d *Debugger) Println(a ...interface{}) {
