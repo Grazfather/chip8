@@ -21,10 +21,6 @@ var cyan = color.New(color.FgCyan).SprintFunc()
 var white = color.New(color.FgWhite, color.Bold).SprintFunc()
 
 // TODO: Make part of debugger
-var stop bool
-var stopped bool
-var first bool
-
 func parseAddr(s string) (uint16, error) {
 	addr, err := strconv.ParseUint(s, 0, 16)
 	if err != nil {
@@ -37,13 +33,16 @@ func parseAddr(s string) (uint16, error) {
 }
 
 type Debugger struct {
-	c    *Chip8
-	rom  string
-	bps  map[uint16]bool
-	tbps map[uint16]bool
-	dis  Disassembler
-	ui   *ui
-	last string
+	c       *Chip8
+	rom     string
+	bps     map[uint16]bool
+	tbps    map[uint16]bool
+	dis     Disassembler
+	ui      *ui
+	last    string
+	stop    bool
+	stopped bool
+	first   bool
 }
 
 type ui struct {
@@ -163,7 +162,7 @@ func (d *Debugger) quit(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (d *Debugger) halt(g *gocui.Gui, v *gocui.View) error {
-	if stopped {
+	if d.stopped {
 		g.Update(func(g *gocui.Gui) error {
 			d.Printf("Already stopped. Press Ctrl-Q or q to quit\n")
 			return nil
@@ -174,16 +173,16 @@ func (d *Debugger) halt(g *gocui.Gui, v *gocui.View) error {
 		d.Println("Received halt")
 		return nil
 	})
-	stop = true
+	d.stop = true
 	d.ui.SetCurrentView(d.ui.promptView.Name())
 	d.ui.Cursor = true
 	return nil
 }
 
 func (d *Debugger) cont() {
-	stop = false
-	stopped = false
-	first = true // So we can continue through a breakpoint
+	d.stop = false
+	d.stopped = false
+	d.first = true // So we can continue through a breakpoint
 	d.ui.Cursor = false
 	d.ui.SetCurrentView(d.ui.displayView.Name())
 }
@@ -193,11 +192,11 @@ func (d *Debugger) StepOne() {
 	if d.c.RenderFlag {
 		d.c.Render()
 	}
-	stopped = false
+	d.stopped = false
 	if err != nil {
 		d.Println(err)
 	}
-	stop = true
+	d.stop = true
 }
 
 func (d *Debugger) Println(a ...interface{}) {
@@ -277,33 +276,33 @@ func (d *Debugger) run() {
 	var tick = time.Tick(2 * time.Millisecond)
 	d.printContext()
 
-	stop = true
-	first = true // To allow us to run while on a bp
+	d.stop = true
+	d.first = true // To allow us to run while on a bp
 LOOP:
 	for {
 		var err error
 		select {
 		case <-tick:
-			if stopped {
+			if d.stopped {
 				continue
 			}
-			if v, ok := d.bps[d.c.pc]; ok && v && !first {
+			if v, ok := d.bps[d.c.pc]; ok && v && !d.first {
 				d.ui.Update(func(g *gocui.Gui) error {
 					d.Printf(red("Hit breakpoint at 0x%04X\n"), d.c.pc)
 					return nil
 				})
-				stop = true
+				d.stop = true
 			}
-			if v, ok := d.tbps[d.c.pc]; ok && v && !first {
+			if v, ok := d.tbps[d.c.pc]; ok && v && !d.first {
 				d.ui.Update(func(g *gocui.Gui) error {
 					d.Printf(red("Hit temp breakpoint at 0x%04X\n"), d.c.pc)
 					return nil
 				})
 				removeBreakpoint(d.tbps, d.c.pc)
-				stop = true
+				d.stop = true
 			}
-			first = false
-			if !stop {
+			d.first = false
+			if !d.stop {
 				err = d.c.RunOne()
 				if d.c.RenderFlag {
 					d.ui.Update(func(g *gocui.Gui) error {
@@ -316,8 +315,8 @@ LOOP:
 				fmt.Fprintln(os.Stderr, err)
 				break LOOP
 			}
-			if stop {
-				stopped = true
+			if d.stop {
+				d.stopped = true
 				d.printContext()
 				d.cleanPrompt()
 			}

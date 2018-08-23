@@ -11,13 +11,13 @@ func reset(d *Debugger, ops []string) {
 	if err := d.c.LoadBinary(d.rom); err != nil {
 		panic("Cannot reload rom")
 	}
-	stopped = false // Redraws context
+	d.stopped = false // Redraws context
 }
 
 func context(d *Debugger, ops []string) {
 	// Setting stop makes the debugger show the context
-	stop = true
-	stopped = false // Redraws context
+	d.stop = true
+	d.stopped = false // Redraws context
 }
 
 func (d *Debugger) printBreakpoints(breaks map[uint16]bool) {
