@@ -111,13 +111,11 @@ func (c *Chip8) Opcode8XY5(ins uint16) {
 	}
 }
 
-// Opcode8XY6 shifts Vy right by one and copies the result to Vx. VF is set to
-// the value of the least significant bit of Vy before the shift.
+// Opcode8XY6 shifts Vx right by one and stores the result. VF is set to the
+// value of the least significant bit of Vy before the shift.
 func (c *Chip8) Opcode8XY6(ins uint16) {
-	lsb := c.v[ArgY(ins)] & 1
-	v := c.v[ArgY(ins)] >> 1
-	c.v[ArgX(ins)] = v
-	c.v[ArgY(ins)] = v
+	lsb := c.v[ArgX(ins)] & 1
+	c.v[ArgX(ins)] = c.v[ArgY(ins)] >> 1
 	c.v[VF] = lsb
 }
 
@@ -128,18 +126,18 @@ func (c *Chip8) Opcode8XY7(ins uint16) {
 	c.v[ArgX(ins)] = x - y
 	// Borrow
 	if y > x {
-		c.v[VF] = 0
-	} else {
 		c.v[VF] = 1
+	} else {
+		c.v[VF] = 0
 	}
 }
 
-// Opcode8XYE shifts Vy left by one and copies the result to Vx. VF is set to the value of the most significant bit of Vy before the shift.
+// Opcode8XYE shifts Vx left by one and stores the result. VF is set to the
+// value of the most significant bit of Vy before the shift.
 func (c *Chip8) Opcode8XYE(ins uint16) {
-	msb := c.v[ArgY(ins)] >> 7 & 1
-	v := c.v[ArgY(ins)] << 1
-	c.v[ArgX(ins)] = v
-	c.v[ArgY(ins)] = v
+	msb := (c.v[ArgX(ins)] >> 7) & 1
+	c.v[ArgX(ins)] = c.v[ArgX(ins)] << 1
+
 	c.v[VF] = msb
 }
 
@@ -250,18 +248,16 @@ func (c *Chip8) OpcodeFX33(ins uint16) {
 // OpcodeFX55 Stores V[0-X] inclusive in memory starting at address I.
 func (c *Chip8) OpcodeFX55(ins uint16) {
 	x := ArgX(ins)
-	for r := uint8(0); r < x; r++ {
-		c.mem[c.i] = c.v[r]
-		c.i++
+	for r := uint8(0); r <= x; r++ {
+		c.mem[c.i+uint16(r)] = c.v[r]
 	}
 }
 
 // OpcodeFX65 Loads V[0-X] inclusive from memory starting at address I.
 func (c *Chip8) OpcodeFX65(ins uint16) {
 	x := ArgX(ins)
-	for r := uint8(0); r < x; r++ {
-		c.v[r] = c.mem[c.i]
-		c.i++
+	for r := uint8(0); r <= x; r++ {
+		c.v[r] = c.mem[c.i+uint16(r)]
 	}
 }
 
