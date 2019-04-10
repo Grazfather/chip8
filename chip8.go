@@ -101,7 +101,7 @@ func (c *Chip8) Reset() {
 
 	c.pc = 0x200
 	c.i = 0
-	c.sp = 0
+	c.sp = 48
 
 	c.screen = &myScreen{}
 	c.screen.OnEachPixel(ClearPixel)

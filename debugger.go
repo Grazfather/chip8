@@ -55,6 +55,7 @@ type ui struct {
 	displayView *gocui.View
 	debugView   *gocui.View
 	promptView  *gocui.View
+	stackView   *gocui.View
 }
 
 func NewDebugger(rom string) *Debugger {
@@ -127,13 +128,21 @@ func (ui *ui) layout(g *gocui.Gui) error {
 	}
 	ui.displayView.Title = "display"
 
-	ui.debugView, err = g.SetView("debug", -1, SCREEN_HEIGHT+3, maxX, maxY-2)
+	ui.debugView, err = g.SetView("debug", -1, SCREEN_HEIGHT+3, maxX-20, maxY-2)
 	if err != nil && err != gocui.ErrUnknownView {
 		return err
 	}
 	ui.debugView.Title = "debug"
 	ui.debugView.Wrap = false
 	ui.debugView.Autoscroll = true
+
+	ui.stackView, err = g.SetView("stack", maxX-19, SCREEN_HEIGHT+3, maxX-1, SCREEN_HEIGHT+3+24+1)
+	if err != nil && err != gocui.ErrUnknownView {
+		return err
+	}
+	ui.stackView.Title = "stack"
+	ui.stackView.Wrap = false
+
 	ui.promptView, err = g.SetView("prompt", -1, maxY-2, maxX, maxY)
 	if err != nil && err != gocui.ErrUnknownView {
 		return err
@@ -143,6 +152,7 @@ func (ui *ui) layout(g *gocui.Gui) error {
 	ui.promptView.Editable = true
 	ui.promptView.Editor = &promptEditor{gocui.DefaultEditor}
 	ui.promptView.Autoscroll = true
+
 	return nil
 }
 
@@ -235,7 +245,7 @@ func (d *Debugger) Start() {
 	}
 	defer g.Close()
 
-	d.ui = &ui{g, nil, nil, nil}
+	d.ui = &ui{g, nil, nil, nil, nil}
 	g.SetManagerFunc(d.ui.layout)
 	// HACK: layout needs to have been called to grab handles to views
 	d.ui.layout(g)
@@ -330,7 +340,23 @@ LOOP:
 	}
 }
 
+func (d *Debugger) printStack() {
+	d.ui.stackView.Clear()
+	for i := 0; i < len(d.c.stack); i++ {
+		if i < d.c.sp/2 {
+			fmt.Fprintf(d.ui.stackView, "0x%02x: "+white("0x%04x"), i*2, d.c.stack[i])
+		} else {
+			fmt.Fprintf(d.ui.stackView, "0x%02x: "+cyan("0x%04x"), i*2, d.c.stack[i])
+		}
+		if i == d.c.sp/2 {
+			fmt.Fprintf(d.ui.stackView, " ← "+red("SP"))
+		}
+		fmt.Fprintf(d.ui.stackView, "\n")
+	}
+}
+
 func (d *Debugger) printState() {
+	d.printStack()
 	d.Println(green("-- ") + yellow("Registers") + green(" --"))
 	d.Printf("PC: "+white("0x%04X")+" I: "+white("0x%04X\n"), d.c.pc, d.c.i)
 	d.Printf("Delay: "+white("0x%02X")+" Sound: "+white("0x%02X\n"), d.c.delay, d.c.sound)

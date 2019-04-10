@@ -18,8 +18,8 @@ func (c *Chip8) Opcode00E0(ins uint16) {
 // Opcode00EE returns from a subroutine.
 func (c *Chip8) Opcode00EE(ins uint16) {
 	// TODO: The RA is actually the call address, which will get incremented
-	c.pc = c.stack[c.sp]
-	c.sp -= 2
+	c.pc = c.stack[c.sp/2]
+	c.sp += 2
 }
 
 // Opcode1NNN jumps to address NNN.
@@ -31,8 +31,8 @@ func (c *Chip8) Opcode1NNN(ins uint16) {
 // Opcode2NNN calls the subroutne at NNN.
 func (c *Chip8) Opcode2NNN(ins uint16) {
 	// TODO: set PC target. For now we count on the loop incrementing past the call instruction
-	c.sp += 2
-	c.stack[c.sp] = c.pc
+	c.sp -= 2
+	c.stack[c.sp/2] = c.pc
 	c.pc = ArgNNN(ins) - 2
 }
 
